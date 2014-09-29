@@ -6,8 +6,16 @@
 %%%%%%%%%%%%%%%
 %%%% Connect
 %%%%%%%%%%%%%%%
-loop(St, {connect, _Server}) ->
-    {ok, St} ;
+loop(St, {connect, Server}) ->
+	Ref =  make_ref(),
+    list_to_atom(Server) ! {request,self(),Ref,{connect,St}},
+	receive
+		{result,_,ok} ->
+			{ok,St#cl_st{status=connected}} ;
+		{result,_,error} ->
+			{{error,user_already_connected,"user_already_connected"},St} 
+		  
+	end;
 
 %%%%%%%%%%%%%%%
 %%%% Disconnect
@@ -38,13 +46,13 @@ loop(St, {msg_from_GUI, _Channel, _Msg}) ->
 %%% WhoIam
 %%%%%%%%%%%%%%
 loop(St, whoiam) ->
-    {"user01", St} ;
+    {St#cl_st.nickname, St} ;
 
 %%%%%%%%%%
 %%% Nick
 %%%%%%%%%%
-loop(St,{nick,_Nick}) ->
-    {ok, St} ;
+loop(St,{nick,Nick}) ->
+	{ok, St#cl_st{nickname = Nick}} ;
 
 %%%%%%%%%%%%%
 %%% Debug
@@ -69,4 +77,7 @@ decompose_msg(_MsgFromClient) ->
 
 
 initial_state(Nick, GUIName) ->
-    #cl_st { gui = GUIName }.
+    #cl_st { gui = GUIName,
+		  nickname = Nick,
+		  chatroom = none,
+		  status = unconnected}.
