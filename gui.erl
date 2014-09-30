@@ -50,7 +50,7 @@ do_init(Server) ->
 
     % If any of the name choosen above are taken at this point, everything crashes!
     register(to_atom(GUIName), self()),
-    genserver:start(to_atom(ClientName), client:initial_state("user01", GUIName),
+    genserver:start(to_atom(ClientName), client:initial_state("user1", GUIName),
                     fun client:loop/2),
 
     %% Starting GUI
