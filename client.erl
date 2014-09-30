@@ -22,7 +22,19 @@ loop(St, {connect, Server}) ->
 %%%% Disconnect
 %%%%%%%%%%%%%%%
 loop(St, disconnect) ->
-     {ok, St} ;
+    if
+		St#cl_st.status == unconnected ->
+			{{error,user_not_connected,atom_to_list(user_not_connected)},St};
+		St#cl_st.chatrooms /= [] ->
+     		{{error,leave_channels_first,atom_to_list(leave_channels_first)},St};
+        true ->
+			Ref = make_ref(),
+			St#cl_st.server ! {request,self(),Ref,{disconnect,St}},
+			receive	
+				{result,_,ok} ->
+					{ok,St#cl_st{status=nonconnected}}
+			end
+	end;
 
 %%%%%%%%%%%%%%
 %%% Join
@@ -41,14 +53,21 @@ loop(St,{join,Channel}) ->
 %%%%%%%%%%%%%%%
 %%%% Leave
 %%%%%%%%%%%%%%%
-loop(St, {leave, _Channel}) ->
-     {ok, St} ;
+loop(St, {leave, Channel}) ->
+	  Ref = make_ref(),
+	  St#cl_st.server ! {request,self(),Ref,{leave,St,Channel}},
+	  receive
+		 {result,_,cannot_leave} ->
+			{{error,user_not_joined,"user_not_joined"},St};
+		 {result,_,can_leave} ->
+			{ok,St#cl_st{chatrooms=lists:delete(Channel,St#cl_st.chatrooms)}}
+     end;
 
 %%%%%%%%%%%%%%%%%%%%%
 %%% Sending messages
 %%%%%%%%%%%%%%%%%%%%%
 loop(St, {msg_from_GUI, Channel, Msg}) ->
-	 Ref = make_ref,
+	 Ref = make_ref(),
 	 St#cl_st.server ! {request,self(),Ref,{message,St,Channel,Msg}},
 	 receive
 		{result,_,error} ->

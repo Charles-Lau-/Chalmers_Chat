@@ -36,8 +36,19 @@ loop(St,{message,Client,Channel,Msg}) ->
 			{ok,St};
 		f ->
 			{error,St}
-	end.
+	end;
 
+
+loop(St,{leave,Client,Channel}) ->
+	case channel_exist(Channel,Client#cl_st.chatrooms) of
+		t ->
+			{can_leave,St#server_st {clients=update_clients(St#server_st.clients,Client#cl_st.gui,Client#cl_st{chatrooms=lists:delete(Channel,Client#cl_st.chatrooms)})}};
+	    f ->
+			{cannot_leave,St}
+	end;
+
+loop(St,{disconnect,Client}) ->
+	{ok,St#server_st{clients=lists:keydelete(Client#cl_st.gui,2,St#server_st.clients)}}.
 	
 update_clients(List,Guiname,New) ->
 	  [New|lists:keydelete(Guiname,2,List)].
