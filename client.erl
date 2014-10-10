@@ -41,6 +41,7 @@ loop(St, disconnect) ->
 %%%%%%%%%%%%%%
 loop(St,{join,Channel}) ->
 	Ref = make_ref(),
+	
 	St#cl_st.server ! {request,self(),Ref,{join,St,Channel}},
 	receive
 		{result,_,cannot_join} ->
